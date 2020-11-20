@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <script src="./wasm_exec.js"></script>
+    <title>Wasm test</title>
+</head>
+<body>
+    <script>
+        localStorage.clear()
+        const go = new Go();
+        WebAssembly.instantiateStreaming(fetch("./app.wasm"), go.importObject)
+            .then((result) => {
+                go.run(result.instance);
+                testLog()
+                testDB()
+            });
+    </script>
+    <div id="test_box">
+        <p>Check console for more details</p>
+        <div id="test_box_log"></div>
+        <div id="test_box_db"></div>
+    </div>
+</body>
+</html>
