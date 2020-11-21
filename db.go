@@ -7,10 +7,10 @@ import (
 	"syscall/js"
 )
 
-// IndexeDB es un objeto que permite realizar consultas en la API de navegador web del mismo nombre.
+// IndexedDB es un objeto que permite realizar consultas en la API de navegador web del mismo nombre.
 // Para más información revisar la documentación sobre indexeDB en:
 //  https://developer.mozilla.org/es/docs/Web/API/IndexedDB_API/Usando_IndexedDB.
-type IndexeDB struct {
+type IndexedDB struct {
 	Name string
 }
 
@@ -18,7 +18,7 @@ type IndexeDB struct {
 //	sigue el mismo esquema que consulta realizada en javascript vanilla, por lo tanto es necesario
 // 	ingresar el nombre del objectStore y el índice para realizar la consulta. Así mismo, para poder manipular
 //	los datos obtenidos, es necesario pasar una función a la medida.
-func (iDB IndexeDB) IndexConsult(objectStore, index string, onsuccessFunction func(this js.Value)) {
+func (iDB IndexedDB) IndexConsult(objectStore, index string, onsuccessFunction func(this js.Value)) {
 	db := js.Global().Get("window").Get("indexedDB").Call("open", iDB.Name, 1)
 
 	db.Set("onsuccess", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -41,7 +41,7 @@ func (iDB IndexeDB) IndexConsult(objectStore, index string, onsuccessFunction fu
 // CustomConsult realiza la consulta a una indexeDB y permite manipular el objeto encontrado. La búsqueda
 // se realiza en el índice que coincida con el valor del parámetro index y el valor del parámetro indexValue.
 // El parámetro onsuccessFunction permite manipular el objeto encontrado.
-func (iDB IndexeDB) CustomConsult(objectStore, index, indexValue string, onsuccessFunction func(this js.Value)) {
+func (iDB IndexedDB) CustomConsult(objectStore, index, indexValue string, onsuccessFunction func(this js.Value)) {
 	db := js.Global().Get("window").Get("indexedDB").Call("open", iDB.Name, 1)
 
 	db.Set("onsuccess", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -65,7 +65,7 @@ func (iDB IndexeDB) CustomConsult(objectStore, index, indexValue string, onsucce
 // con js, por lo que es necesario indicar el objectStore. El parámetro onsuccessFunction recibe como argumento
 // el cursor resultante (el resultado del evento onsuccess), sobre el mismo se puede acceder a cada uno de
 // los objetos guardados en la indexeDB.
-func (iDB IndexeDB) GetItems(objectStore string, onsuccessFunction func(e js.Value)) {
+func (iDB IndexedDB) GetItems(objectStore string, onsuccessFunction func(e js.Value)) {
 	db := js.Global().Get("window").Get("indexedDB").Call("open", iDB.Name, 1)
 	db.Set("onsuccess", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		DB := db.Get("result")
@@ -82,7 +82,7 @@ func (iDB IndexeDB) GetItems(objectStore string, onsuccessFunction func(e js.Val
 }
 
 // NewElement es un método que permite agregar o actualizar un elemento de una indexeDB
-func (iDB IndexeDB) NewElement(objectStore string, element map[string]interface{}, log Log) {
+func (iDB IndexedDB) NewElement(objectStore string, element map[string]interface{}, log Log) {
 	db := js.Global().Get("window").Get("indexedDB").Call("open", iDB.Name, 1)
 
 	db.Set("onerror", js.FuncOf(func(this js.Value, args []js.Value) interface{} {

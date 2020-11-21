@@ -34,7 +34,7 @@ func main() {
 				objSt.Call("createIndex", "name", "name", map[string]interface{}{"unique": false})
 			}, log)
 
-			db := wasm.IndexeDB{Name: "try"}
+			db := wasm.IndexedDB{Name: "try"}
 			db.NewElement("try", map[string]interface{}{"id": "myData1", "name": "MyName"}, log)
 			db.NewElement("try", map[string]interface{}{"id": "myData2", "name": "MyName2"}, log)
 		}()
