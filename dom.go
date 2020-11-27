@@ -12,7 +12,7 @@ func Alert(msj string) {
 // -- "error" 	ejecutará un console.error()
 // -- "warn" 	ejecutará un console.warn()
 // WARNING: un valor distinto a los anteriores como argumento action invocará un panic()
-func Console(action, msj string) {
+func Console(action string, msj interface{}) {
 	js.Global().Get("console").Call(action, msj)
 }
 

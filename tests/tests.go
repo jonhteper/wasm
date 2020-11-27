@@ -34,9 +34,9 @@ func main() {
 				objSt.Call("createIndex", "name", "name", map[string]interface{}{"unique": false})
 			}, log)
 
-			db := wasm.IndexedDB{Name: "try"}
-			db.NewElement("try", map[string]interface{}{"id": "myData1", "name": "MyName"}, log)
-			db.NewElement("try", map[string]interface{}{"id": "myData2", "name": "MyName2"}, log)
+			db := wasm.IndexedDB{Name: "try", ObjectStore: "try"}
+			db.NewElement(map[string]interface{}{"id": "myData1", "name": "MyName"}, log)
+			db.NewElement(map[string]interface{}{"id": "myData2", "name": "MyName2"}, log)
 		}()
 		wasm.InnerHTML("#test_box_db", "DB pass test 😀")
 

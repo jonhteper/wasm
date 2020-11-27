@@ -8,47 +8,39 @@ import (
 )
 
 // IndexedDB es un objeto que permite realizar consultas en la API de navegador web del mismo nombre.
-// Para más información revisar la documentación sobre indexeDB en:
+// Para más información revisar la documentación sobre indexedDB en:
 //  https://developer.mozilla.org/es/docs/Web/API/IndexedDB_API/Usando_IndexedDB.
 type IndexedDB struct {
-	Name string
+	Name        string
+	ObjectStore string
 }
 
-// IndexConsult realiza la consulta a una indexeDB y permite manipular el objeto encontrado. Esta función
+// IndexConsult realiza la consulta a una indexedDB y permite manipular el objeto encontrado. Esta función
 //	sigue el mismo esquema que consulta realizada en javascript vanilla, por lo tanto es necesario
 // 	ingresar el nombre del objectStore y el índice para realizar la consulta. Así mismo, para poder manipular
 //	los datos obtenidos, es necesario pasar una función a la medida.
-func (iDB IndexedDB) IndexConsult(objectStore, index string, onsuccessFunction func(this js.Value)) {
-	db := js.Global().Get("window").Get("indexedDB").Call("open", iDB.Name, 1)
-
-	db.Set("onsuccess", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		DB := db.Get("result")
-		data := DB.Call("transaction", iDB.Name, "readonly")
-		objSt := data.Call("objectStore", objectStore)
-		request := objSt.Call("get", index)
+func (iDB IndexedDB) IndexConsult(indexValue string, onsuccessFunction func(this js.Value), log Log) {
+	simpleConsult(iDB, "readonly", func(o js.Value) {
+		request := o.Call("get", indexValue)
 
 		request.Set("onsuccess", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			onsuccessFunction(request)
-
 			return nil
 		}))
 
-		return nil
-	}))
-
+		request.Set("onerror", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			_ = log.Add("item " + indexValue + " not exist")
+			return nil
+		}))
+	}, log)
 }
 
-// CustomConsult realiza la consulta a una indexeDB y permite manipular el objeto encontrado. La búsqueda
+// CustomConsult realiza la consulta a una indexedDB y permite manipular el objeto encontrado. La búsqueda
 // se realiza en el índice que coincida con el valor del parámetro index y el valor del parámetro indexValue.
 // El parámetro onsuccessFunction permite manipular el objeto encontrado.
-func (iDB IndexedDB) CustomConsult(objectStore, index, indexValue string, onsuccessFunction func(this js.Value)) {
-	db := js.Global().Get("window").Get("indexedDB").Call("open", iDB.Name, 1)
-
-	db.Set("onsuccess", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		DB := db.Get("result")
-		data := DB.Call("transaction", iDB.Name, "readonly")
-		objSt := data.Call("objectStore", objectStore)
-		indexDB := objSt.Call("index", index)
+func (iDB IndexedDB) CustomConsult(index string, indexValue interface{}, onsuccessFunction func(this js.Value), log Log) {
+	simpleConsult(iDB, "readonly", func(o js.Value) {
+		indexDB := o.Call("index", index)
 		request := indexDB.Call("get", indexValue)
 
 		request.Set("onsuccess", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -57,19 +49,31 @@ func (iDB IndexedDB) CustomConsult(objectStore, index, indexValue string, onsucc
 			return nil
 		}))
 
-		return nil
-	}))
+		request.Set("onerror", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			_ = log.Add(fmt.Sprintf("item %v not exist", indexValue))
+			return nil
+		}))
+	}, log)
+
 }
 
 // GetItems permite manipular los objetos dentro de una indexeDB. Sigue el mismo esquema que una consulta
 // con js, por lo que es necesario indicar el objectStore. El parámetro onsuccessFunction recibe como argumento
 // el cursor resultante (el resultado del evento onsuccess), sobre el mismo se puede acceder a cada uno de
-// los objetos guardados en la indexeDB.
-func (iDB IndexedDB) GetItems(objectStore string, onsuccessFunction func(e js.Value)) {
+// los objetos guardados en la indexedDB. Tomar en cuenta que la transaction tiene permisos 'readwrite'.
+func (iDB IndexedDB) GetItems(onsuccessFunction func(e js.Value), log Log) {
 	db := js.Global().Get("window").Get("indexedDB").Call("open", iDB.Name, 1)
+
+	db.Set("onerror", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		msj := fmt.Sprintf("impossible open %v db", iDB.Name)
+		_ = log.Add(msj)
+		Console("warn", msj)
+		return nil
+	}))
+
 	db.Set("onsuccess", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		DB := db.Get("result")
-		objSt := DB.Call("transaction", iDB.Name).Call("objectStore", objectStore)
+		objSt := DB.Call("transaction", iDB.ObjectStore, "readwrite").Call("objectStore", iDB.ObjectStore)
 		objSt.Call("openCursor").Set("onsuccess", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 
 			cursor := args[0].Get("target").Get("result") //<-- args[0] Es el evento
@@ -81,8 +85,8 @@ func (iDB IndexedDB) GetItems(objectStore string, onsuccessFunction func(e js.Va
 	}))
 }
 
-// NewElement es un método que permite agregar o actualizar un elemento de una indexeDB
-func (iDB IndexedDB) NewElement(objectStore string, element map[string]interface{}, log Log) {
+// NewElement es un método que permite agregar o actualizar un elemento de una indexedDB.
+func (iDB IndexedDB) NewElement(element map[string]interface{}, log Log) {
 	db := js.Global().Get("window").Get("indexedDB").Call("open", iDB.Name, 1)
 
 	db.Set("onerror", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -95,8 +99,8 @@ func (iDB IndexedDB) NewElement(objectStore string, element map[string]interface
 
 	db.Set("onsuccess", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		DB := db.Get("result")
-		trans := DB.Call("transaction", iDB.Name, "readwrite")
-		objSt := trans.Call("objectStore", objectStore)
+		trans := DB.Call("transaction", iDB.ObjectStore, "readwrite")
+		objSt := trans.Call("objectStore", iDB.ObjectStore)
 
 		objSt.Call("add", element)
 
@@ -106,12 +110,36 @@ func (iDB IndexedDB) NewElement(objectStore string, element map[string]interface
 		}))
 
 		trans.Set("onerror", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-			updateElement(iDB.Name, objectStore, DB, element, log)
+			updateElement(iDB.Name, iDB.ObjectStore, DB, element, log)
 			return nil
 		}))
 
 		return nil
 	}))
+}
+
+// DeleteElement permite eliminar items de la base de datos. La eliminación solo puede realizarse con base en
+// el índice principal.
+//
+// WARNING: Actualmente el método delete siempre retorna success. Por lo mismo, el mensaje no debe ser tomado
+// por cierto.
+func (iDB IndexedDB) DeleteElement(indexValue string, log Log) {
+	simpleConsult(iDB, "readwrite", func(o js.Value) {
+		request := o.Call("delete", indexValue)
+
+		request.Set("onsuccess", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			fmt.Println("Element ", indexValue, " has been deleted")
+			return nil
+		}))
+
+	}, log)
+}
+
+// Clear borra todos los elementos de la indexedDB.
+func (iDB IndexedDB) Clear(log Log) {
+	simpleConsult(iDB, "readwrite", func(o js.Value) {
+		o.Call("clear")
+	}, log)
 }
 
 // Intenta crear una indexDB con un objectStore, en caso de existir una con el mismo nombre será actualizada.
@@ -147,8 +175,29 @@ func CreateDB(name, objectStore string, onupgradeneededFunc func(objSt js.Value)
 	}))
 }
 
+func simpleConsult(iDB IndexedDB, permission string, onsuccessFunc func(objSt js.Value), log Log) {
+	db := js.Global().Get("window").Get("indexedDB").Call("open", iDB.Name, 1)
+	db.Set("onerror", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		msj := fmt.Sprintf("impossible open %v db", iDB.Name)
+		_ = log.Add(msj)
+		Console("warn", msj)
+
+		return nil
+	}))
+
+	db.Set("onsuccess", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		DB := db.Get("result")
+		trans := DB.Call("transaction", iDB.ObjectStore, permission)
+		objSt := trans.Call("objectStore", iDB.ObjectStore)
+
+		onsuccessFunc(objSt)
+
+		return nil
+	}))
+}
+
 func updateElement(nameDB, objectStore string, result js.Value, element map[string]interface{}, log Log) {
-	trans := result.Call("transaction", nameDB, "readwrite")
+	trans := result.Call("transaction", objectStore, "readwrite")
 	objSt := trans.Call("objectStore", objectStore)
 
 	objSt.Call("put", element)
