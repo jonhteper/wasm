@@ -1,3 +1,8 @@
+// +build js,wasm
+
+// This package contains some functions to be simple WebAssembly applications developed with go language.
+// Allows to access and manipulate the LocalStorage, IndexedDB and DOM.
+//
 package wasm
 
 import "syscall/js"
@@ -43,4 +48,20 @@ func InputValue(id string) string {
 //
 func InnerHTML(selector, content string) {
 	js.Global().Get("document").Call("querySelector", selector).Set("innerHTML", content)
+}
+
+// Selecciona un DOMObject y le añade código HTML.
+//
+// Example. La función
+//
+//  wasm.AddHTML("#my_div", "<p>Hello Word</p>")
+//
+// Es equivalente al siguiente script js:
+//
+//  document.querySelector('#my_div').innerHTML += '<p>Hello Word</p>'
+//
+func AddHTML(selector, content string) {
+	c := js.Global().Get("document").Call("querySelector", selector).Get("innerHTML").String()
+	c += content
+	InnerHTML(selector, c)
 }
