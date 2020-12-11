@@ -4,6 +4,7 @@ package wasm
 
 import (
 	"fmt"
+	"sync"
 	"syscall/js"
 )
 
@@ -13,6 +14,26 @@ import (
 type IndexedDB struct {
 	Name        string
 	ObjectStore string
+}
+
+// Count devuelve el número de elementos disponibles en la indexedDB
+func (iDB IndexedDB) Count(log Log) int {
+	var wg sync.WaitGroup
+	c := make(chan int, 1)
+	wg.Add(1)
+	simpleConsult(iDB, "readonly", func(o js.Value) {
+		t := o.Call("count")
+		t.Set("onsuccess", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			n := t.Get("result").Int()
+			c <- n
+			wg.Done()
+			return nil
+		}))
+
+	}, log)
+	wg.Wait()
+	return <-c
+
 }
 
 // IndexConsult realiza la consulta a una indexedDB y permite manipular el objeto encontrado. Esta función

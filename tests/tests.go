@@ -43,5 +43,15 @@ func main() {
 		return nil
 	}))
 
+	js.Global().Set("testDB2", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		fmt.Println("starting DB tests 2...")
+		go func() {
+			db := wasm.IndexedDB{Name: "try", ObjectStore: "try"}
+			n := db.Count(log)
+			fmt.Println(n)
+			wasm.InnerHTML("#test_box_db2", "DB pass test 😀")
+		}()
+		return nil
+	}))
 	<-make(chan interface{})
 }

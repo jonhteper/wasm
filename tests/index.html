@@ -17,12 +17,14 @@
                 go.run(result.instance);
                 testLog()
                 testDB()
+                setTimeout(testDB2, 300)
             });
     </script>
     <div id="test_box">
         <p>Check console for more details</p>
         <div id="test_box_log"></div>
         <div id="test_box_db"></div>
+        <div id="test_box_db2"></div>
     </div>
 </body>
 </html>
